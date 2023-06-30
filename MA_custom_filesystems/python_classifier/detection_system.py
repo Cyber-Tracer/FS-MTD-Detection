@@ -86,21 +86,40 @@ def main():
             stream_df = pd.read_csv(CSV_PATH.format(counter))
             counter += 1
 
-            row = prepare_dataset(stream_df, group_by_pid=True)
-            if row.empty:
+            before = prepare_dataset(stream_df, group_by_pid=True)
+            print('\n==================================')
+            print('New logs received:')
+            print(before)
+            if before.empty:
                 continue
             features = ["entropy_max", "entropy_mean", "entropy_min", "sum_writes", "sum_reads"]
-            row = row.loc[:, features]
+            row = before.loc[:, features]
             row = row.fillna(value={"entropy_max": 0, "entropy_min": 0, "entropy_mean": 0})
             pred = clf.predict(row)
 
             with open(LOG_PATH, "w") as classifier:
-                if 0 in pred:
-                    print("Ransomware detected - terminating...")
-                    classifier.write("true")
-                    break
+                someRansomware = 0 in pred
+                if someRansomware:
+                    print("Ransomware detected /!\\")
+                    #classifier.write("true")
+                    #break
                 else:
-                    classifier.write("false")
+                    #classifier.write("false")
+                    print("No Ransomware detected..")
 
+                for i, p in enumerate(pred):
+                    pid = before['pid'][i]
 
+                    maliciousPids = []
+
+                    if p == 0:
+                        print('Process [' + str(pid) + '] is malicious')
+                        maliciousPids.append(str(pid))
+                    else:
+                        print('Process [' + str(pid) + '] is benign')
+
+                if someRansomware:
+                    classifier.write('\n'.join(maliciousPids))
+                else:
+                    classifier.write('-1')
 main()

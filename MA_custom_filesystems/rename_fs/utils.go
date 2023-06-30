@@ -7,13 +7,24 @@ import (
 	"strconv"
 )
 
-func isMalicious() bool {
+func isMalicious(pid uint32) bool {
 	classifier, err := os.ReadFile("../logs/classifier.log")
 	if err != nil {
 		fmt.Println(err)
 	}
-	classifierBool, _ := strconv.ParseBool(string(classifier))
-	return classifierBool
+	//classification := strconv.FormatUint(uint64(classifier), 10)
+	classification := string(classifier)
+	requestingProcess := strconv.FormatUint(uint64(pid), 10)
+	fmt.Printf("\nIs %s malicious?\n", requestingProcess)
+	fmt.Printf("Received %s from classifier..\n", classification)
+	malicious := requestingProcess == classification
+	if malicious {
+		fmt.Printf("Malicious!")
+	} else {
+		fmt.Printf("Benign..")
+	}
+
+	return requestingProcess == classification
 }
 
 

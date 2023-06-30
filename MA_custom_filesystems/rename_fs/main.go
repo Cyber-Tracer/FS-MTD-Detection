@@ -143,8 +143,9 @@ func (f *RenameFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.
 	defer f.mu.Unlock()
 	caller, _ := fuse.FromContext(ctx)
 	pid := caller.Pid
+	//fmt.Println(pid)
 	ext := strings.Split(f.name, ".")[1]
-	if isMalicious() {
+	if isMalicious(pid) {
 		f.node.Rename(ctx, f.name, f.parentNode, "_"+f.name, 0)
 	}
 
@@ -195,10 +196,10 @@ func (n *RenameNode) path() string {
 
 func main() {
 	go changeLogFile()
-	mountPoint := "/home/USERNAME_HERE/FTP/" // Change the path to the desired mountpoint
+	mountPoint := "/home/john/FTP/" // Change the path to the desired mountpoint
 	rootData := &fs.LoopbackRoot{
 		NewNode: newRenameNode,
-		Path:    "../filesystem_dir",
+		Path:    "/home/john/001",
 	}
 
 	sec := time.Second

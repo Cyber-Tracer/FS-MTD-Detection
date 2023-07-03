@@ -17,3 +17,5 @@ example/zipfs/zipfs
 benchmark/bulkstat.bin
 benchmark/bulkstat/main
 benchmark/cstatfs
+MA_custom_filesystems/logs/logfile*.csv
+MA_custom_filesystems/logs/classifier.log

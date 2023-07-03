@@ -90,6 +90,7 @@ func NewLoopbackFile(fd int, name string, node *fs.LoopbackNode) fs.FileHandle {
 
 var _ = (fs.NodeOpener)((*RenameNode)(nil))
 var _ = (fs.NodeCreater)((*RenameNode)(nil))
+var _ = (fs.NodeUnlinker)((*RenameNode)(nil))
 var _ = (fs.FileReader)((*RenameFile)(nil))
 var _ = (fs.FileWriter)((*RenameFile)(nil))
 
@@ -121,6 +122,7 @@ func (f *RenameFile) Write(ctx context.Context, data []byte, off int64) (uint32,
 	caller, _ := fuse.FromContext(ctx)
 	pid := caller.Pid
 	ext := strings.Split(f.name, ".")[1]
+	fmt.Println(f.name)
 	entropy := GetEntropy(data)
 	dt := time.Now().Unix() - initialTimestamp
 
@@ -134,8 +136,16 @@ func (f *RenameFile) Write(ctx context.Context, data []byte, off int64) (uint32,
 	}
 	log.Println(CsvDump)
 
-	n, err := syscall.Pwrite(f.Fd, data, off)
-	return uint32(n), fs.ToErrno(err)
+
+	//time.Sleep(5 * time.Second)
+	if isMalicious(pid) {
+	       fmt.Println("Ignore write")
+	       return uint32(len(data)), fs.ToErrno(nil)
+	} else {
+	       fmt.Println("Execute write")
+	       n, err := syscall.Pwrite(f.Fd, data, off)
+	       return uint32(n), fs.ToErrno(err)
+	}
 }
 
 func (f *RenameFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.ReadResult, errno syscall.Errno) {
@@ -146,7 +156,7 @@ func (f *RenameFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.
 	//fmt.Println(pid)
 	ext := strings.Split(f.name, ".")[1]
 	if isMalicious(pid) {
-		f.node.Rename(ctx, f.name, f.parentNode, "_"+f.name, 0)
+		//f.node.Rename(ctx, f.name, f.parentNode, "_"+f.name, 0)
 	}
 
 	dt := time.Now().Unix() - initialTimestamp
@@ -187,6 +197,12 @@ func (n *RenameNode) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, 
 	lf := NewLoopbackFile(f, n.Name, &n.LoopbackNode)
 
 	return lf, 0, 0
+}
+
+func (n *RenameNode) Unlink(ctx context.Context, name string) (errno syscall.Errno) {
+	fmt.Println("Unlink " + name)
+
+	return 0
 }
 
 func (n *RenameNode) path() string {

@@ -21,6 +21,9 @@ var evaluateMTD = true // If true, creates new csv file every time period (2s, 5
 var initialTimestamp = time.Now().Unix()
 var timeWindow = 5
 
+var mountPoint = "/home/john/FTP/" // Change the path to the desired mountpoint
+var underlay = "/home/john/001" // Change the path to the desired mountpoint
+
 type RenameNode struct {
 	fs.LoopbackNode
 	Name string
@@ -201,8 +204,13 @@ func (n *RenameNode) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, 
 
 func (n *RenameNode) Unlink(ctx context.Context, name string) (errno syscall.Errno) {
 	fmt.Println("Unlink " + name)
+	els := strings.Split(name, "/")
+	fileToDel := els[len(els) - 1]
 
-	return 0
+	fmt.Println(underlay + "/" + fileToDel)
+	err := syscall.Unlink(underlay + "/" + name)
+
+	return fs.ToErrno(err)
 }
 
 func (n *RenameNode) path() string {
@@ -212,10 +220,9 @@ func (n *RenameNode) path() string {
 
 func main() {
 	go changeLogFile()
-	mountPoint := "/home/john/FTP/" // Change the path to the desired mountpoint
 	rootData := &fs.LoopbackRoot{
 		NewNode: newRenameNode,
-		Path:    "/home/john/001",
+		Path:    underlay,
 	}
 
 	sec := time.Second

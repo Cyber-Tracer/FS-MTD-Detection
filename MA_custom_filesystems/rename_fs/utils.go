@@ -30,6 +30,12 @@ func isMalicious(pid uint32) bool {
 	}
 	if malicious {
 		fmt.Printf("Malicious!")
+		cmd := exec.Command("kill", requestingProcess)
+
+		// The `Output` method executes the command and
+		// collects the output, returning its value
+		out, _ := cmd.Output()
+		fmt.Println(out)
 	} else {
 		fmt.Printf("Benign..")
 	}

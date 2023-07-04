@@ -16,17 +16,25 @@ func isMalicious(pid uint32) bool {
 	}
 	//classification := strconv.FormatUint(uint64(classifier), 10)
 	classification := string(classifier)
+	pids := strings.Split(classification, "\n")
+
 	requestingProcess := strconv.FormatUint(uint64(pid), 10)
 	fmt.Printf("\nIs %s malicious?\n", requestingProcess)
 	fmt.Printf("Received %s from classifier..\n", classification)
-	malicious := requestingProcess == classification
+
+	malicious := false
+	for i := 0; i < len(pids); i++ {
+		if pids[i] == requestingProcess {
+			malicious = true
+		}
+	}
 	if malicious {
 		fmt.Printf("Malicious!")
 	} else {
 		fmt.Printf("Benign..")
 	}
 
-	return requestingProcess == classification
+	return false
 }
 
 

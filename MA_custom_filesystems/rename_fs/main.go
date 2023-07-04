@@ -22,9 +22,9 @@ var initialTimestamp = time.Now().Unix()
 var timeWindow = 5
 
 var mountPoint = "/home/john/FTP/" // Change the path to the desired mountpoint
-var underlay = "/home/john/001" // Change the path to the desired mountpoint
+var underlay = "/home/john/001"    // Change the path to the desired mountpoint
 
-var delayingModifcations = true // Toggle to make any modifying ops delayed until the process is known
+var delayingModifcations = false // Toggle to make any modifying ops delayed until the process is known
 
 type RenameNode struct {
 	fs.LoopbackNode
@@ -55,7 +55,7 @@ type RenameFile struct {
 }
 
 func setLogFile(num int) {
-        file, err := os.OpenFile(fmt.Sprintf(logPath, num), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	file, err := os.OpenFile(fmt.Sprintf(logPath, num), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 
 	if err != nil {
 		log.Fatal(err)
@@ -144,19 +144,20 @@ func (f *RenameFile) Write(ctx context.Context, data []byte, off int64) (uint32,
 		Timestamp: dt,
 	}
 	log.Println(CsvDump)
+	fmt.Println("Writing to log")
+	fmt.Println(log.Writer())
 	if delayingModifcations {
 		time.Sleep(5 * time.Second)
 	}
 	if isMalicious(pid) {
-	       fmt.Println("Ignore write")
-	       return uint32(len(data)), fs.ToErrno(nil)
+		fmt.Println("Ignore write")
+		return uint32(len(data)), fs.ToErrno(nil)
 	} else {
-	       fmt.Println("Execute write")
-	       n, err := syscall.Pwrite(f.Fd, data, off)
-	       return uint32(n), fs.ToErrno(err)
+		fmt.Println("Execute write")
+		n, err := syscall.Pwrite(f.Fd, data, off)
+		return uint32(n), fs.ToErrno(err)
 	}
 }
-
 
 func (f *RenameFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.ReadResult, errno syscall.Errno) {
 	f.mu.Lock()
@@ -212,7 +213,7 @@ func (n *RenameNode) Open(ctx context.Context, flags uint32) (fh fs.FileHandle, 
 func (n *RenameNode) Unlink(ctx context.Context, name string) (errno syscall.Errno) {
 	fmt.Println("Unlink " + name)
 	els := strings.Split(name, "/")
-	fileToDel := els[len(els) - 1]
+	fileToDel := els[len(els)-1]
 
 	fmt.Println(underlay + "/" + fileToDel)
 
@@ -224,11 +225,11 @@ func (n *RenameNode) Unlink(ctx context.Context, name string) (errno syscall.Err
 	}
 
 	if isMalicious(pid) {
-	       	fmt.Println("Ignore unlink")
-	       	return fs.ToErrno(nil)
+		fmt.Println("Ignore unlink")
+		return fs.ToErrno(nil)
 	} else {
-	       	fmt.Println("Execute unlink")
-	       	err := syscall.Unlink(underlay + "/" + name)
+		fmt.Println("Execute unlink")
+		err := syscall.Unlink(underlay + "/" + name)
 		return fs.ToErrno(err)
 	}
 }
@@ -237,7 +238,7 @@ func (n *RenameNode) Rename(ctx context.Context, name string, newParent fs.Inode
 	fmt.Println("Rename " + name + " to " + newName)
 	// TODO: Implement proper renaming and non-trivial cases (e.g., subdirs)
 
-	err := syscall.Rename(underlay + "/" + name, underlay + "/" + newName)
+	err := syscall.Rename(underlay+"/"+name, underlay+"/"+newName)
 	return fs.ToErrno(err)
 }
 

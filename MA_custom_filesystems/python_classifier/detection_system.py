@@ -107,10 +107,9 @@ def main():
                     #classifier.write("false")
                     print("No Ransomware detected..")
 
+                maliciousPids = []
                 for i, p in enumerate(pred):
                     pid = before['pid'][i]
-
-                    maliciousPids = []
 
                     if p == 0:
                         print('Process [' + str(pid) + '] is malicious')
@@ -119,6 +118,7 @@ def main():
                         print('Process [' + str(pid) + '] is benign')
 
                 if someRansomware:
+                    print(maliciousPids)
                     classifier.write('\n'.join(maliciousPids))
                 else:
                     classifier.write('-1')

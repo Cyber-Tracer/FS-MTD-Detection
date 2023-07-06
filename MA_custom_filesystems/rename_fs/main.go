@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"bufio"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -24,7 +25,9 @@ var timeWindow = 5
 var mountPoint = "/home/john/FTP/" // Change the path to the desired mountpoint
 var underlay = "/home/john/001"    // Change the path to the desired mountpoint
 
-var delayingModifcations = false // Toggle to make any modifying ops delayed until the process is known
+var delayingModifcations = true // Toggle to make any modifying ops delayed until the process is known
+var w *bufio.Writer
+var monitor = ""
 
 type RenameNode struct {
 	fs.LoopbackNode
@@ -55,19 +58,23 @@ type RenameFile struct {
 }
 
 func setLogFile(num int) {
+	fmt.Println("Current monitor")
+	fmt.Println(monitor)
+	monitor = "pid,entropy,op,ext,filename,timestamp\n"
 	file, err := os.OpenFile(fmt.Sprintf(logPath, num), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	w = bufio.NewWriter(file)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.SetFlags(0)
-	log.SetOutput(file)
-	log.Println("pid,entropy,op,ext,filename,timestamp")
+	fmt.Fprintln(w, "pid,entropy,op,ext,filename,timestamp")
+	w.Flush()
 }
 
 // In case we are evaluating in real settings, we create a new csv file every 10s
 // Every csv file will be classified with non-malicious/malicious
 func changeLogFile() {
+
 	setLogFile(0)
 
 	if evaluateMTD {
@@ -143,7 +150,9 @@ func (f *RenameFile) Write(ctx context.Context, data []byte, off int64) (uint32,
 		Name:      f.name,
 		Timestamp: dt,
 	}
-	log.Println(CsvDump)
+	monitor = monitor + CsvDump.String() + "\n"
+	fmt.Fprintln(w, CsvDump)
+	w.Flush()
 	fmt.Println("Writing to log")
 	fmt.Println(log.Writer())
 	if delayingModifcations {
@@ -180,8 +189,10 @@ func (f *RenameFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.
 		Name:      f.name,
 		Timestamp: dt,
 	}
+	monitor = monitor + CsvDump.String() + "\n"
 
-	log.Println(CsvDump)
+	fmt.Fprintln(w, CsvDump)
+	w.Flush()
 
 	r := fuse.ReadResultFd(uintptr(f.Fd), off, len(buf))
 	return r, fs.OK

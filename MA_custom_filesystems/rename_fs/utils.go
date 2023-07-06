@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 	"strconv"
-	"os/exec"
 )
 
 func isMalicious(pid uint32) bool {

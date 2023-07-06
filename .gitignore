@@ -19,3 +19,6 @@ benchmark/bulkstat/main
 benchmark/cstatfs
 MA_custom_filesystems/logs/logfile*.csv
 MA_custom_filesystems/logs/classifier.log
+*swp
+.idea/
+MA_custom_filesystems/rename_fs/rename_fs

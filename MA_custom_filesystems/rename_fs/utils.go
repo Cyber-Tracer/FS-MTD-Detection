@@ -33,7 +33,7 @@ func isMalicious(pid uint32) bool {
 		fmt.Printf("Benign..")
 	}
 
-	return false
+	return malicious
 }
 
 

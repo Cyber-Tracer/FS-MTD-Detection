@@ -8,8 +8,8 @@ import sklearn
 
 LOG_PATH = "../logs/classifier.log"
 MODEL_PATH = "./models/rfClassifier.model"
-CSV_PATH = "../logs/logfile{}.csv"
-TIME_WINDOW = 5.0
+CSV_PATH = "../logs/monitor.csv"
+TIME_WINDOW = 2.0
 clf = pickle.load(open(MODEL_PATH, "rb"))
 
 LOW_ENTROPY_EXTENSIONS = [
@@ -80,46 +80,51 @@ def prepare_dataset(df, group_by_pid=False):
 def main():
     counter = 0
     while True:
-        if not os.path.exists(CSV_PATH.format(counter)):
-            time.sleep(TIME_WINDOW)
-        else:
-            stream_df = pd.read_csv(CSV_PATH.format(counter))
-            counter += 1
+        print("NOW: " + CSV_PATH)
+        time.sleep(TIME_WINDOW)
+        try:
+            stream_df = pd.read_csv(CSV_PATH)
+        except:
+            continue
 
-            before = prepare_dataset(stream_df, group_by_pid=True)
-            print('\n==================================')
-            print('New logs received:')
-            print(before)
-            if before.empty:
-                continue
-            features = ["entropy_max", "entropy_mean", "entropy_min", "sum_writes", "sum_reads"]
-            row = before.loc[:, features]
-            row = row.fillna(value={"entropy_max": 0, "entropy_min": 0, "entropy_mean": 0})
-            pred = clf.predict(row)
+        counter += 1
 
-            with open(LOG_PATH, "w") as classifier:
-                someRansomware = 0 in pred
-                if someRansomware:
-                    print("Ransomware detected /!\\")
-                    #classifier.write("true")
-                    #break
+        before = prepare_dataset(stream_df, group_by_pid=True)
+        print('\n==================================')
+        print('New logs received:')
+        print(stream_df)
+        print('Cleaned')
+        print(before)
+        if before.empty:
+            continue
+        features = ["entropy_max", "entropy_mean", "entropy_min", "sum_writes", "sum_reads"]
+        row = before.loc[:, features]
+        row = row.fillna(value={"entropy_max": 0, "entropy_min": 0, "entropy_mean": 0})
+        pred = clf.predict(row)
+
+        with open(LOG_PATH, "w") as classifier:
+            someRansomware = 0 in pred
+            if someRansomware:
+                print("Ransomware detected /!\\")
+                #classifier.write("true")
+                #break
+            else:
+                #classifier.write("false")
+                print("No Ransomware detected..")
+
+            maliciousPids = []
+            for i, p in enumerate(pred):
+                pid = before['pid'][i]
+
+                if p == 0:
+                    print('Process [' + str(pid) + '] is malicious')
+                    maliciousPids.append(str(pid))
                 else:
-                    #classifier.write("false")
-                    print("No Ransomware detected..")
+                    print('Process [' + str(pid) + '] is benign')
 
-                maliciousPids = []
-                for i, p in enumerate(pred):
-                    pid = before['pid'][i]
-
-                    if p == 0:
-                        print('Process [' + str(pid) + '] is malicious')
-                        maliciousPids.append(str(pid))
-                    else:
-                        print('Process [' + str(pid) + '] is benign')
-
-                if someRansomware:
-                    print(maliciousPids)
-                    classifier.write('\n'.join(maliciousPids))
-                else:
-                    classifier.write('-1')
+            if someRansomware:
+                print(maliciousPids)
+                classifier.write('\n'.join(maliciousPids))
+            else:
+                classifier.write('-1')
 main()

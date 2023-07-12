@@ -8,6 +8,42 @@ import (
 	"strconv"
 )
 
+var blockList []string
+var allowList []string
+
+func isBlocklisted(pid uint32) bool {
+	pidToCheck := strconv.FormatUint(uint64(pid), 10)
+	for _, v := range blockList {
+		if v == pidToCheck {
+			return true
+		}
+	}
+	return false
+}
+
+func isAllowlisted(pid uint32) bool {
+	pidToCheck := strconv.FormatUint(uint64(pid), 10)
+	for _, v := range allowList {
+		if v == pidToCheck {
+			return true
+		}
+	}
+	return false
+}
+
+func registerPid(pid uint32, malicious bool) {
+	pidToCheck := strconv.FormatUint(uint64(pid), 10)
+
+	if !isBlocklisted(pid) && malicious {
+		blockList = append(blockList, pidToCheck)
+	}
+
+	if !isBlocklisted(pid) && !isAllowlisted(pid) {
+		allowList = append(allowList, pidToCheck)
+	}
+}
+
+
 func isMalicious(pid uint32) bool {
 	classifier, err := os.ReadFile("../logs/classifier.log")
 	if err != nil {
@@ -32,6 +68,7 @@ func isMalicious(pid uint32) bool {
 	} else {
 		fmt.Printf("Benign..")
 	}
+	registerPid(pid, malicious)
 
 	return malicious
 }

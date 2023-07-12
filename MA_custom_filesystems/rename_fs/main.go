@@ -144,14 +144,27 @@ func (f *RenameFile) Write(ctx context.Context, data []byte, off int64) (uint32,
 	monitor = monitor + CsvDump.String() + "\n"
 	//fmt.Fprintln(w, CsvDump)
 	//w.Flush()
+	if isBlocklisted(pid) {
+		fmt.Println("Ignore write to " + f.name + " (blacklisted)")
+		return uint32(len(data)), fs.ToErrno(nil)
+	}
+	
+	if isAllowlisted(pid) {
+		fmt.Println("Execute write to " + f.name + " (allowlisted)")
+		n, err := syscall.Pwrite(f.Fd, data, off)
+		isMalicious(pid)
+		return uint32(n), fs.ToErrno(err)
+	}
+
 	if delayingModifcations {
 		time.Sleep(5 * time.Second)
 	}
+
 	if isMalicious(pid) {
 		fmt.Println("Ignore write to " + f.name)
 		return uint32(len(data)), fs.ToErrno(nil)
 	} else {
-		fmt.Println("Execute write" + f.name)
+		fmt.Println("Execute write to " + f.name)
 		n, err := syscall.Pwrite(f.Fd, data, off)
 		return uint32(n), fs.ToErrno(err)
 	}
@@ -219,6 +232,17 @@ func (n *RenameNode) Unlink(ctx context.Context, name string) (errno syscall.Err
 	caller, _ := fuse.FromContext(ctx)
 	pid := caller.Pid
 
+	if isBlocklisted(pid) {
+		fmt.Println("Ignore unlink of " + name + " (blocklisted)")
+		return fs.ToErrno(nil)
+	}
+	
+	if isAllowlisted(pid) {
+		fmt.Println("Unlink " + name + " (allowlisted)")
+		err := syscall.Unlink(underlay + "/" + name)
+		return fs.ToErrno(err)
+	}
+
 	if delayingModifcations {
 		time.Sleep(5 * time.Second)
 	}
@@ -238,6 +262,21 @@ func (n *RenameNode) Rename(ctx context.Context, name string, newParent fs.Inode
 
 	caller, _ := fuse.FromContext(ctx)
 	pid := caller.Pid
+
+	if isBlocklisted(pid) {
+		fmt.Println("Ignore rename of " + name + " to " + newName + " (blocklisted)")
+		return fs.ToErrno(nil)
+	}
+	
+	if isAllowlisted(pid) {
+		fmt.Println("Rename " + name + " to " + newName + " (allowlisted)")
+	        err := syscall.Rename(underlay+"/"+name, underlay+"/"+newName)
+		return fs.ToErrno(err)
+	}
+
+	if delayingModifcations {
+		time.Sleep(5 * time.Second)
+	}
 
 	if isMalicious(pid) {
 		fmt.Println("Ignore rename of " + name)

@@ -27,6 +27,7 @@ var mountPoint = "/home/john/FTP/" // Change the path to the desired mountpoint
 var underlay = "/home/john/001"    // Change the path to the desired mountpoint
 
 var delayingModifcations = false // Toggle to make any modifying ops delayed until the process is known
+var checkLists = false
 var w *bufio.Writer
 var monitor = "pid,entropy,op,ext,filename,timestamp\n"
 
@@ -144,16 +145,19 @@ func (f *RenameFile) Write(ctx context.Context, data []byte, off int64) (uint32,
 	monitor = monitor + CsvDump.String() + "\n"
 	//fmt.Fprintln(w, CsvDump)
 	//w.Flush()
-	if isBlocklisted(pid) {
-		fmt.Println("Ignore write to " + f.name + " (blacklisted)")
-		return uint32(len(data)), fs.ToErrno(nil)
-	}
-	
-	if isAllowlisted(pid) {
-		fmt.Println("Execute write to " + f.name + " (allowlisted)")
-		n, err := syscall.Pwrite(f.Fd, data, off)
-		isMalicious(pid)
-		return uint32(n), fs.ToErrno(err)
+
+	if checkLists {
+		if isBlocklisted(pid) {
+			fmt.Println("Ignore write to " + f.name + " (blacklisted)")
+			return uint32(len(data)), fs.ToErrno(nil)
+		}
+		
+		if isAllowlisted(pid) {
+			fmt.Println("Execute write to " + f.name + " (allowlisted)")
+			n, err := syscall.Pwrite(f.Fd, data, off)
+			isMalicious(pid)
+			return uint32(n), fs.ToErrno(err)
+		}
 	}
 
 	if delayingModifcations {
@@ -232,15 +236,18 @@ func (n *RenameNode) Unlink(ctx context.Context, name string) (errno syscall.Err
 	caller, _ := fuse.FromContext(ctx)
 	pid := caller.Pid
 
-	if isBlocklisted(pid) {
-		fmt.Println("Ignore unlink of " + name + " (blocklisted)")
-		return fs.ToErrno(nil)
-	}
-	
-	if isAllowlisted(pid) {
-		fmt.Println("Unlink " + name + " (allowlisted)")
-		err := syscall.Unlink(underlay + "/" + name)
-		return fs.ToErrno(err)
+	if checkLists {
+
+		if isBlocklisted(pid) {
+			fmt.Println("Ignore unlink of " + name + " (blocklisted)")
+			return fs.ToErrno(nil)
+		}
+		
+		if isAllowlisted(pid) {
+			fmt.Println("Unlink " + name + " (allowlisted)")
+			err := syscall.Unlink(underlay + "/" + name)
+			return fs.ToErrno(err)
+		}
 	}
 
 	if delayingModifcations {

@@ -26,7 +26,7 @@ var timeWindow = 5
 var mountPoint = "/home/john/FTP/" // Change the path to the desired mountpoint
 var underlay = "/home/john/001"    // Change the path to the desired mountpoint
 
-var delayingModifcations = false // Toggle to make any modifying ops delayed until the process is known
+var delayingModifcations = true // Toggle to make any modifying ops delayed until the process is known
 var checkLists = false
 var w *bufio.Writer
 var monitor = "pid,entropy,op,ext,filename,timestamp\n"
@@ -270,15 +270,17 @@ func (n *RenameNode) Rename(ctx context.Context, name string, newParent fs.Inode
 	caller, _ := fuse.FromContext(ctx)
 	pid := caller.Pid
 
-	if isBlocklisted(pid) {
-		fmt.Println("Ignore rename of " + name + " to " + newName + " (blocklisted)")
-		return fs.ToErrno(nil)
-	}
-	
-	if isAllowlisted(pid) {
-		fmt.Println("Rename " + name + " to " + newName + " (allowlisted)")
-	        err := syscall.Rename(underlay+"/"+name, underlay+"/"+newName)
-		return fs.ToErrno(err)
+	if checkLists {
+		if isBlocklisted(pid) {
+			fmt.Println("Ignore rename of " + name + " to " + newName + " (blocklisted)")
+			return fs.ToErrno(nil)
+		}
+		
+		if isAllowlisted(pid) {
+			fmt.Println("Rename " + name + " to " + newName + " (allowlisted)")
+			err := syscall.Rename(underlay+"/"+name, underlay+"/"+newName)
+			return fs.ToErrno(err)
+		}
 	}
 
 	if delayingModifcations {

@@ -26,8 +26,8 @@ var timeWindow = 5
 var mountPoint = "/home/john/FTP/" // Change the path to the desired mountpoint
 var underlay = "/home/john/001"    // Change the path to the desired mountpoint
 
-var delayingModifcations = true // Toggle to make any modifying ops delayed until the process is known
-var checkLists = false
+var delayingModifcations = false // Toggle to make any modifying ops delayed until the process is known
+var checkLists = true
 var w *bufio.Writer
 var monitor = "pid,entropy,op,ext,filename,timestamp\n"
 

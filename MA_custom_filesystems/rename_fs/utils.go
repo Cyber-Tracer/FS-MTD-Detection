@@ -39,7 +39,8 @@ func registerPid(pid uint32, malicious bool) {
 	}
 
 	if !isBlocklisted(pid) && !isAllowlisted(pid) {
-		allowList = append(allowList, pidToCheck)
+		// USE only blocklist
+		//allowList = append(allowList, pidToCheck)
 	}
 }
 
